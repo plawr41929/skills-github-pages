@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:mso="urn:schemas-microsoft-com:office:office" xmlns:msdt="uuid:C2F41010-65B3-11d1-A29F-00AA00C14882">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sensor check</title>
+<style>
+body{font:16px/1.45 system-ui,Roboto,Arial,sans-serif;margin:0;padding:18px;background:#f3f2ee;color:#18222c}
+@media(prefers-color-scheme:dark){body{background:#121a22;color:#e7ecef}td{border-color:#2c3944}}
+h1{font-size:20px;margin:0 0 4px}
+p{margin:6px 0 14px;max-width:34rem}
+table{border-collapse:collapse;width:100%;max-width:34rem}
+td{padding:9px 6px;border-bottom:1px solid #d3d5d0;vertical-align:top}
+td:last-child{font-weight:650;text-align:right}
+button{font:inherit;font-weight:650;min-height:48px;padding:0 18px;border:0;border-radius:10px;background:#c2410c;color:#fff;margin:14px 0}
+.ok{color:#23875a}.no{color:#c2410c}
+</style>
+
+<!--[if gte mso 9]><xml>
+<mso:CustomDocumentProperties>
+<mso:PrimeAutofillMeta msdt:dt="string">{&quot;columns&quot;:{&quot;DrawingNumber&quot;:{&quot;hash&quot;:&quot;E3EBAA16DD9D9B9F&quot;,&quot;ts&quot;:&quot;2026-11-19T15:19:47.6278205Z&quot;,&quot;v&quot;:3},&quot;DrawingRevision&quot;:{&quot;hash&quot;:&quot;E3EBAA16DD9D9B9F&quot;,&quot;ts&quot;:&quot;2026-11-19T15:19:47.6278205Z&quot;,&quot;v&quot;:3},&quot;DrawingRevisionDate&quot;:{&quot;hash&quot;:&quot;E3EBAA16DD9D9B9F&quot;,&quot;ts&quot;:&quot;2026-11-19T15:</mso:PrimeAutofillMeta>
+<mso:DrawingNumber msdt:dt="string">Not found</mso:DrawingNumber>
+<mso:DrawingRevision msdt:dt="string">Not found</mso:DrawingRevision>
+<mso:DrawingDescription msdt:dt="string">Not found</mso:DrawingDescription>
+</mso:CustomDocumentProperties>
+</xml><![endif]-->
+</head>
+<body>
+<h1>Sensor check</h1>
+<p>Tap Run the check and tilt the phone. If it says the page is inside a frame, tap Open as its own page and run the check again in the new tab.</p>
+<button id="go">Run the check</button> <button id="pop">Open as its own page</button>
+<table id="t"></table>
+<script>
+(function(){
+var rows=[],t=document.getElementById('t');
+function set(k,v,good){var r=rows.filter(function(x){return x.k===k})[0];if(!r){r={k:k};rows.push(r)}r.v=v;r.g=good;draw()}
+function draw(){t.innerHTML=rows.map(function(r){return '<tr><td>'+r.k+'</td><td class="'+(r.g===true?'ok':r.g===false?'no':'')+'">'+r.v+'</td></tr>'}).join('')}
+var top=false;try{top=window.top===window.self}catch(e){top=false}
+set('Address type',location.protocol.replace(':',''),location.protocol==='https:');
+set('Secure page',window.isSecureContext?'yes':'no',!!window.isSecureContext);
+set('Opened as its own page',top?'yes':'no, inside a frame',top);
+set('Motion events supported',window.DeviceOrientationEvent?'yes':'no',!!window.DeviceOrientationEvent);
+function perm(name,label){if(!navigator.permissions||!navigator.permissions.query){set(label,'cannot ask');return}
+ navigator.permissions.query({name:name}).then(function(s){set(label,s.state,s.state==='granted'?true:s.state==='denied'?false:undefined)}).catch(function(){set(label,'not recognised')})}
+perm('accelerometer','Accelerometer permission');perm('gyroscope','Gyroscope permission');perm('camera','Camera permission');
+set('Motion readings','not started');
+var pop=document.getElementById('pop');if(top)pop.style.display='none';
+pop.onclick=function(){try{var u=URL.createObjectURL(new Blob(['<!DOCTYPE html>'+document.documentElement.outerHTML],{type:'text/html'}));var w=window.open(u,'_blank');if(!w)set('Own page attempt','blocked',false);else set('Own page attempt','opened in a new tab',true)}catch(e){set('Own page attempt','error: '+e.name,false)}};
+document.getElementById('go').onclick=function(){
+ var got=false;set('Motion readings','waiting...');
+ function on(e){if(e.alpha==null&&e.beta==null)return;got=true;set('Motion readings',Math.round(e.alpha||0)+' / '+Math.round(e.beta||0)+' / '+Math.round(e.gamma||0),true)}
+ function start(){window.addEventListener('deviceorientation',on);setTimeout(function(){if(!got)set('Motion readings','none received',false)},2500)}
+ var D=window.DeviceOrientationEvent;
+ if(D&&typeof D.requestPermission==='function')D.requestPermission().then(function(r){set('Motion prompt answer',r,r==='granted');start()}).catch(function(e){set('Motion prompt answer','error: '+e.name,false);start()});else start();
+ if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(function(s){set('Camera opens','yes',true);s.getTracks().forEach(function(x){x.stop()})}).catch(function(e){set('Camera opens','no: '+e.name,false)});else set('Camera opens','not available',false);
+};
+})();
+</script>
+</body>
+</html>
